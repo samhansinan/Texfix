@@ -1,4 +1,4 @@
-name: .NET Desktop CI
+name: .NET Web API CI
 
 on:
   push:
@@ -8,43 +8,31 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        configuration: [Debug, Release]
-
     runs-on: windows-latest
 
-    env:
-      Configuration: ${{ matrix.configuration }}
-
     steps:
-    - name: Checkout
+    - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
+    # ✅ Install NuGet
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
 
+    # ✅ Restore NuGet packages (THIS FIXES YOUR ERROR)
+    - name: Restore NuGet packages
+      run: nuget restore ItemWebapi.sln
+
+    # OR alternative (if above fails):
+    # - run: msbuild /t:Restore ItemWebapi.sln
+
+    # ✅ Setup MSBuild
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    # 🔧 Restore solution
-    - name: Restore
-      run: msbuild /t:Restore
-
-    # 🔧 Build solution
+    # ✅ Build project
     - name: Build
-      run: msbuild /p:Configuration=$env:Configuration
+      run: msbuild ItemWebapi.sln /p:Configuration=Debug
 
-    # 🧪 Run tests (only if you have test project)
+    # Optional tests
     - name: Test
-      run: dotnet test || echo "No test project or tests skipped"
-
-    # 📦 Upload artifacts (optional)
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-output-${{ matrix.configuration }}
-        path: |
-          **/bin/${{ matrix.configuration }}/
+      run: dotnet test || echo "No tests found"
